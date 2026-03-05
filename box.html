@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>小阳哥 · 神秘宝箱</title>
+<style>
+:root{--bg:#0a0a0f;--card:#1c1c26;--border:rgba(255,255,255,0.07);--accent:#f5c842;--accent2:#ff7043;--text:#f0ede8;--muted:rgba(240,237,232,0.45)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Noto Sans SC',sans-serif;min-height:100vh;overflow:hidden;position:relative}
+
+/* 整个stage-box是一个大按钮，点哪里都触发 */
+#stage-box{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;-webkit-user-select:none;
+}
+#stage-box * { pointer-events:none; }
+
+.brand{font-size:11px;font-weight:700;letter-spacing:.25em;color:var(--muted);text-transform:uppercase;margin-bottom:48px}
+
+.box-area{position:relative;width:200px;height:200px;margin-bottom:48px}
+.box-glow{position:absolute;inset:-40px;background:radial-gradient(circle,rgba(245,200,66,.2) 0%,transparent 70%);border-radius:50%;animation:glowP 2s ease-in-out infinite}
+@keyframes glowP{0%,100%{opacity:.5;transform:scale(.9)}50%{opacity:1;transform:scale(1.1)}}
+.p-ring{position:absolute;border-radius:50%;border:1.5px solid rgba(245,200,66,.25);animation:ringP 2.5s ease-in-out infinite}
+.p-ring.r1{inset:-16px;animation-delay:.3s}
+.p-ring.r2{inset:-36px;animation-delay:.8s;border-color:rgba(245,200,66,.12)}
+.p-ring.r3{inset:-56px;animation-delay:1.3s;border-color:rgba(245,200,66,.06)}
+@keyframes ringP{0%{transform:scale(.9);opacity:0}50%{opacity:1}100%{transform:scale(1.25);opacity:0}}
+.box-svg{width:200px;height:200px;display:block;position:relative;z-index:1}
+.box-lid{transform-origin:50% 100%;transition:transform .6s cubic-bezier(.175,.885,.32,1.275)}
+#stage-box.opening .box-lid{transform:translateY(-80px) rotate(-15deg)}
+#stage-box.shaking{animation:shake .5s ease}
+@keyframes shake{0%,100%{transform:none}15%{transform:translateX(-8px)}30%{transform:translateX(8px)}45%{transform:translateX(-5px)}60%{transform:translateX(5px)}80%{transform:translateX(-2px)}}
+
+.tap-hint{font-size:14px;color:var(--muted);letter-spacing:.05em;animation:blink 2s ease-in-out infinite;margin-bottom:8px}
+@keyframes blink{0%,100%{opacity:.4}50%{opacity:1}}
+.tap-arrow{font-size:24px;animation:bounce 1.5s ease-in-out infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+/* 阶段2 爆炸 */
+#stage-opening{display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:var(--bg)}
+.burst-wrap{position:relative;width:280px;height:280px;display:flex;align-items:center;justify-content:center}
+.b-ring{position:absolute;inset:0;border-radius:50%;border:3px solid var(--accent);animation:bRing .8s ease-out forwards;opacity:0}
+.b-ring.r2{animation-delay:.12s;border-color:var(--accent2)}
+.b-ring.r3{animation-delay:.24s;border-color:white;border-width:1px}
+@keyframes bRing{0%{transform:scale(0);opacity:1}100%{transform:scale(2.5);opacity:0}}
+#burstEmoji{font-size:110px;animation:bEmoji .6s cubic-bezier(.175,.885,.32,1.275) forwards;transform:scale(0);display:block;text-align:center}
+@keyframes bEmoji{0%{transform:scale(0) rotate(-15deg)}70%{transform:scale(1.1) rotate(5deg)}100%{transform:scale(1) rotate(0)}}
+
+/* 阶段3 결과 */
+#stage-result{display:none;position:fixed;inset:0;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+.r-label{font-size:11px;letter-spacing:.3em;color:var(--muted);text-transform:uppercase;margin-bottom:16px;font-weight:700}
+.r-label.owned{color:rgba(245,200,66,.7)}
+.r-card{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:24px 20px;width:100%;max-width:360px;text-align:center;position:relative;overflow:hidden;margin-bottom:14px}
+.r-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(245,200,66,.08) 0%,transparent 60%);pointer-events:none}
+.owned-badge{position:absolute;top:12px;right:12px;background:rgba(255,255,255,.08);border-radius:8px;padding:3px 9px;font-size:10px;color:var(--muted);font-weight:700}
+.r-rarity{display:inline-flex;align-items:center;gap:5px;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:14px}
+.r-emoji{font-size:72px;display:block;margin-bottom:10px;line-height:1.1}
+.r-name{font-size:24px;font-weight:900;color:var(--text);margin-bottom:3px}
+.r-title-text{font-size:12px;color:var(--muted);margin-bottom:12px}
+.r-divider{height:1px;background:var(--border);margin:10px 0}
+.r-desc{font-size:12px;color:var(--muted);line-height:1.7}
+.r-bonus{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.bonus-chip{background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.2);border-radius:8px;padding:3px 9px;font-size:11px;color:var(--accent);font-weight:700}
+
+.btn-go{width:100%;max-width:360px;padding:16px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--accent),#e0aa00);color:#0a0a0f;font-size:15px;font-weight:900;font-family:inherit;cursor:pointer;box-shadow:0 6px 20px rgba(245,200,66,.3);-webkit-tap-highlight-color:transparent;touch-action:manipulation;display:block}
+.btn-go:active{opacity:.85;transform:scale(.98)}
+.btn-again{width:100%;max-width:360px;padding:13px;border:1px solid var(--border);border-radius:16px;background:transparent;color:var(--muted);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:10px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;display:block}
+.btn-again:active{border-color:var(--accent);color:var(--accent)}
+
+.confetti-piece{position:fixed;animation:cFall linear forwards;pointer-events:none;z-index:999}
+@keyframes cFall{0%{transform:translateY(-10px) rotate(0);opacity:1}100%{transform:translateY(105vh) rotate(540deg);opacity:0}}
+
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(245,200,66,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(245,200,66,.025) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
+</style>
+</head>
+<body>
+
+<!-- 阶段1: 整个页面都可以点击 -->
+<div id="stage-box" onclick="openBox()">
+  <div class="brand">小阳哥 · 神秘宝箱</div>
+  <div class="box-area">
+    <div class="box-glow"></div>
+    <div class="p-ring r1"></div>
+    <div class="p-ring r2"></div>
+    <div class="p-ring r3"></div>
+    <svg class="box-svg" viewBox="0 0 200 200" fill="none">
+      <rect x="18" y="108" width="164" height="82" rx="14" fill="#1c1a14" stroke="#f5c842" stroke-width="2.5"/>
+      <rect x="28" y="118" width="144" height="62" rx="9" fill="#252218" opacity=".5"/>
+      <rect x="18" y="141" width="164" height="7" fill="#f5c842"/>
+      <rect x="83" y="131" width="34" height="26" rx="9" fill="#f5c842"/>
+      <rect x="89" y="137" width="22" height="16" rx="6" fill="#1c1a14"/>
+      <circle cx="100" cy="145" r="4.5" fill="#f5c842"/>
+      <rect x="18" y="108" width="18" height="82" rx="5" fill="#f5c842" opacity=".2"/>
+      <rect x="164" y="108" width="18" height="82" rx="5" fill="#f5c842" opacity=".2"/>
+      <g class="box-lid">
+        <rect x="18" y="76" width="164" height="38" rx="14" fill="#241f18" stroke="#f5c842" stroke-width="2.5"/>
+        <rect x="18" y="76" width="164" height="20" rx="14" fill="#2e2820"/>
+        <rect x="18" y="105" width="164" height="5" fill="#f5c842" opacity=".7"/>
+        <rect x="18" y="76" width="18" height="38" rx="5" fill="#f5c842" opacity=".2"/>
+        <rect x="164" y="76" width="18" height="38" rx="5" fill="#f5c842" opacity=".2"/>
+        <path d="M78 76 Q100 60 122 76" stroke="#f5c842" stroke-width="2" fill="none" opacity=".6"/>
+        <circle cx="100" cy="66" r="7" fill="#f5c842" opacity=".85"/>
+        <circle cx="100" cy="66" r="3.5" fill="#1c1a14"/>
+      </g>
+    </svg>
+  </div>
+  <div class="tap-hint">轻触任意位置，开启宝箱</div>
+  <div class="tap-arrow">↓</div>
+</div>
+
+<!-- 阶段2: 爆炸 -->
+<div id="stage-opening">
+  <div class="burst-wrap">
+    <div class="b-ring"></div>
+    <div class="b-ring r2"></div>
+    <div class="b-ring r3"></div>
+    <span id="burstEmoji">🎭</span>
+  </div>
+</div>
+
+<!-- 阶段3: 结果 -->
+<div id="stage-result">
+  <div class="r-label" id="rLabel">✦ 获得新角色 ✦</div>
+  <div class="r-card">
+    <div class="owned-badge" id="ownedBadge" style="display:none">已拥有</div>
+    <div class="r-rarity" id="rRarity"></div>
+    <span class="r-emoji" id="rEmoji"></span>
+    <div class="r-name" id="rName"></div>
+    <div class="r-title-text" id="rTitle"></div>
+    <div class="r-divider"></div>
+    <div class="r-desc" id="rDesc"></div>
+    <div class="r-bonus" id="rBonus"></div>
+  </div>
+  <button class="btn-go" onclick="goToGame()">进入游戏，收入囊中 →</button>
+  <button class="btn-again" onclick="location.reload()">再看看宝箱</button>
+</div>
+
+<script>
+const GAME_URL='https://xiaoyangge.netlify.app/';
+const BL={hunger:'饱食+',happy:'快乐+',energy:'精力+',health:'健康+'};
+const CC=['#f5c842','#ff7043','#42a5f5','#66bb6a','#ab47bc','#fff'];
+const CHARS=[
+  {id:1,name:'角色一',title:'传说的起点',emoji:'🔴',rarity:'普通',rc:'#78909c',rb:'rgba(120,144,156,.15)',rs:'⭐',desc:'这是1号角色的介绍，待填写。',bonus:{hunger:5}},
+  {id:2,name:'角色二',title:'水之守护者',emoji:'🔵',rarity:'普通',rc:'#42a5f5',rb:'rgba(66,165,245,.15)',rs:'⭐',desc:'这是2号角色的介绍，待填写。',bonus:{happy:5}},
+  {id:3,name:'角色三',title:'风之使者',emoji:'🟢',rarity:'普通',rc:'#66bb6a',rb:'rgba(102,187,106,.15)',rs:'⭐',desc:'这是3号角色的介绍，待填写。',bonus:{energy:5}},
+  {id:4,name:'角色四',title:'大地之力',emoji:'🟡',rarity:'普通',rc:'#ffa726',rb:'rgba(255,167,38,.15)',rs:'⭐',desc:'这是4号角色的介绍，待填写。',bonus:{health:5}},
+  {id:5,name:'角色五',title:'雷霆战士',emoji:'⚡',rarity:'稀有',rc:'#ab47bc',rb:'rgba(171,71,188,.15)',rs:'⭐⭐',desc:'这是5号角色的介绍，待填写。',bonus:{hunger:5,happy:5}},
+  {id:6,name:'角色六',title:'暗夜幽灵',emoji:'🌙',rarity:'稀有',rc:'#5c6bc0',rb:'rgba(92,107,192,.15)',rs:'⭐⭐',desc:'这是6号角色的介绍，待填写。',bonus:{happy:5,energy:5}},
+  {id:7,name:'角色七',title:'光明圣者',emoji:'☀️',rarity:'史诗',rc:'#ff7043',rb:'rgba(255,112,67,.15)',rs:'⭐⭐⭐',desc:'这是7号角色的介绍，待填写。',bonus:{hunger:5,happy:5,energy:5}},
+  {id:8,name:'角色八',title:'传说之王',emoji:'👑',rarity:'传说',rc:'#f5c842',rb:'rgba(245,200,66,.15)',rs:'⭐⭐⭐⭐',desc:'这是8号角色的介绍，待填写。',bonus:{hunger:5,happy:5,energy:5,health:5}},
+];
+
+let charId=1,char=null,alreadyOwned=false,opening=false;
+(function(){
+  const p=new URLSearchParams(location.search);
+  charId=parseInt(p.get('id')||p.get('unlock')||'1');
+  if(charId<1||charId>8)charId=1;
+  char=CHARS.find(c=>c.id===charId)||CHARS[0];
+  try{const o=JSON.parse(localStorage.getItem('xy_chars')||'[]');alreadyOwned=o.includes(charId);}catch(e){}
+})();
+
+function openBox(){
+  if(opening)return;
+  opening=true;
+  const s=document.getElementById('stage-box');
+  s.style.pointerEvents='none';
+  s.classList.add('shaking');
+  setTimeout(()=>{
+    s.classList.add('opening');
+    setTimeout(showBurst,480);
+  },560);
+}
+
+function showBurst(){
+  document.getElementById('stage-box').style.display='none';
+  const s=document.getElementById('stage-opening');
+  s.style.display='flex';
+  document.getElementById('burstEmoji').textContent=char.emoji;
+  spawnConfetti();
+  setTimeout(showResult,950);
+}
+
+function showResult(){
+  document.getElementById('stage-opening').style.display='none';
+  const s=document.getElementById('stage-result');
+  s.style.display='flex';
+  if(alreadyOwned){
+    const l=document.getElementById('rLabel');
+    l.textContent='✦ 已拥有此角色 ✦';l.className='r-label owned';
+    document.getElementById('ownedBadge').style.display='block';
+  }
+  const rar=document.getElementById('rRarity');
+  rar.textContent=char.rs+' '+char.rarity;
+  rar.style.cssText+='background:'+char.rb+';color:'+char.rc+';border:1px solid '+char.rc+'44';
+  document.getElementById('rEmoji').textContent=char.emoji;
+  document.getElementById('rName').textContent=char.name;
+  document.getElementById('rTitle').textContent=char.title;
+  document.getElementById('rDesc').textContent=char.desc;
+  document.getElementById('rBonus').innerHTML=Object.entries(char.bonus).map(([k,v])=>'<span class="bonus-chip">'+( BL[k]||k)+v+'</span>').join('');
+  if(!alreadyOwned){
+    try{
+      const o=JSON.parse(localStorage.getItem('xy_chars')||'[]');
+      if(!o.includes(charId))o.push(charId);
+      localStorage.setItem('xy_chars',JSON.stringify(o));
+      if(!localStorage.getItem('xy_active_char'))localStorage.setItem('xy_active_char',charId);
+    }catch(e){}
+    spawnConfetti();
+  }
+}
+
+function goToGame(){window.location.href=GAME_URL+'?from=box&char='+charId;}
+
+function spawnConfetti(){
+  for(let i=0;i<40;i++)setTimeout(()=>{
+    const el=document.createElement('div');
+    el.className='confetti-piece';
+    const sz=5+Math.random()*8;
+    el.style.cssText='left:'+(10+Math.random()*80)+'%;top:0;width:'+sz+'px;height:'+sz+'px;background:'+CC[Math.floor(Math.random()*CC.length)]+';border-radius:'+(Math.random()>.5?'50%':'3px')+';animation-duration:'+(1.4+Math.random()*1.8)+'s';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),3200);
+  },i*30);
+}
+</script>
+</body>
+</html>

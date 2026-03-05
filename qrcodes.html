@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>小阳哥 — 8个角色二维码</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Noto Sans SC',sans-serif; background:#fef9f0; padding:20px; }
+  h1 { text-align:center; color:#ff7043; font-size:22px; margin-bottom:6px; }
+  .subtitle { text-align:center; color:#8d6e63; font-size:13px; margin-bottom:24px; }
+
+  .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; max-width:900px; margin:0 auto; }
+
+  .card {
+    background:white; border-radius:20px; padding:18px 14px 14px;
+    text-align:center; box-shadow:0 4px 16px rgba(0,0,0,0.08);
+    border:2px solid #f0e0d0; page-break-inside:avoid;
+  }
+  .card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .char-num { font-size:11px; font-weight:900; color:#8d6e63; background:#f5f0ea; border-radius:6px; padding:2px 7px; }
+  .rarity-badge { font-size:10px; font-weight:900; padding:2px 7px; border-radius:6px; }
+  .char-emoji { font-size:36px; margin:6px 0; display:block; }
+  .char-name { font-size:14px; font-weight:900; color:#3d2c1e; margin-bottom:2px; }
+  .char-title { font-size:10px; color:#8d6e63; margin-bottom:10px; }
+  .qr-wrap { display:flex; justify-content:center; margin:8px 0; }
+  .qr-wrap canvas, .qr-wrap img { border-radius:8px; }
+  .unlock-url { font-size:9px; color:#bbb; word-break:break-all; margin-top:6px; }
+  .nfc-hint { font-size:10px; color:#8d6e63; background:#fff3e0; border-radius:8px; padding:4px 8px; margin-top:6px; }
+
+  .print-btn {
+    display:block; margin:0 auto 20px; background:#ff7043; color:white;
+    border:none; border-radius:14px; padding:12px 32px; font-size:15px;
+    font-weight:800; cursor:pointer; font-family:inherit;
+  }
+  .print-btn:active { transform:scale(0.97); }
+
+  @media print {
+    .print-btn { display:none; }
+    body { background:white; padding:10px; }
+    .card { box-shadow:none; border:1px solid #ddd; }
+    .grid { grid-template-columns:repeat(4,1fr); gap:10px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🐾 小阳哥 — 角色解锁卡</h1>
+<p class="subtitle">扫描二维码或触碰NFC标签，解锁专属角色</p>
+
+<button class="print-btn" onclick="window.print()">🖨️ 打印全部二维码</button>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const BASE_URL = 'https://dulcet-marzipan-dcdf8b.netlify.app/box.html?id=';
+
+const CHARS = [
+  { id:1, name:'角色一', title:'传说的起点',   emoji:'🔴', rarity:'普通', color:'#78909c', bg:'#eceff1' },
+  { id:2, name:'角色二', title:'水之守护者',   emoji:'🔵', rarity:'普通', color:'#42a5f5', bg:'#e3f2fd' },
+  { id:3, name:'角色三', title:'风之使者',     emoji:'🟢', rarity:'普通', color:'#66bb6a', bg:'#e8f5e9' },
+  { id:4, name:'角色四', title:'大地之力',     emoji:'🟡', rarity:'普通', color:'#ffa726', bg:'#fff8e1' },
+  { id:5, name:'角色五', title:'雷霆战士',     emoji:'⚡', rarity:'稀有', color:'#7b1fa2', bg:'#f3e5f5' },
+  { id:6, name:'角色六', title:'暗夜幽灵',     emoji:'🌙', rarity:'稀有', color:'#1a237e', bg:'#e8eaf6' },
+  { id:7, name:'角色七', title:'光明圣者',     emoji:'☀️', rarity:'史诗', color:'#e65100', bg:'#fff3e0' },
+  { id:8, name:'角色八', title:'传说之王',     emoji:'👑', rarity:'传说', color:'#ff6f00', bg:'linear-gradient(135deg,#fff8e1,#fff3cd)' },
+];
+
+const RARITY_STARS = { '普通':'⭐', '稀有':'⭐⭐', '史诗':'⭐⭐⭐', '传说':'⭐⭐⭐⭐' };
+
+const grid = document.getElementById('grid');
+
+CHARS.forEach(c => {
+  const url = BASE_URL + c.id;
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <div class="card-header">
+      <span class="char-num">#${c.id}</span>
+      <span class="rarity-badge" style="background:${c.bg};color:${c.color}">${c.rarity} ${RARITY_STARS[c.rarity]}</span>
+    </div>
+    <span class="char-emoji">${c.emoji}</span>
+    <div class="char-name">${c.name}</div>
+    <div class="char-title" style="color:${c.color}">${c.title}</div>
+    <div class="qr-wrap" id="qr${c.id}"></div>
+    <div class="nfc-hint">📡 NFC标签也可解锁</div>
+    <div class="unlock-url">${url}</div>
+  `;
+  grid.appendChild(card);
+
+  // 生成二维码
+  setTimeout(() => {
+    new QRCode(document.getElementById('qr' + c.id), {
+      text: url,
+      width: 120,
+      height: 120,
+      colorDark: '#3d2c1e',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M,
+    });
+  }, c.id * 50);
+});
+</script>
+</body>
+</html>
